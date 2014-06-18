@@ -32,6 +32,10 @@ function asyncBelongsTo(type, options, meta) {
         belongsTo = data[key];
 
     if(!isNone(belongsTo)) {
+      var inverse = this.constructor.inverseFor(key);
+      if (inverse && inverse.kind === 'belongsTo'){
+          set(belongsTo, inverse.name, this);
+      }
       //TODO(Igor) after OR doesn't seem that will be called
       promise = store.findById(belongsTo.constructor, belongsTo.get('id')) || Promise.cast(belongsTo, promiseLabel);
       return PromiseObject.create({

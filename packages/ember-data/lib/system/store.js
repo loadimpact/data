@@ -415,7 +415,7 @@ Store = Ember.Object.extend({
         if (relationshipMeta.isRelationship){
          if (relationshipMeta.kind === 'hasMany'){
             Ember.assert("You need to pass in an array to set a hasMany property on a record", Ember.isArray(preload[key]));
-            forEach(get(preload, key), function(recordToPush){
+            forEach(get(preload, key), function(recordToPush) {
               if (Ember.typeOf(recordToPush) === 'string' || Ember.typeOf(recordToPush) === 'number'){
                 recordToPush = store.recordForId(relationshipMeta.type, recordToPush);
               }
@@ -487,7 +487,7 @@ Store = Ember.Object.extend({
     return promise;
   },
 
-  scheduleFetchMany: function(records){
+  scheduleFetchMany: function(records) {
     return Ember.RSVP.all(map(records, this.scheduleFetch, this));
   },
 
@@ -513,9 +513,10 @@ Store = Ember.Object.extend({
   },
 
   flushPendingFetch: function(){
-    if (this.isDestoyed || this.isDestroying){
+    if (this.isDestoyed || this.isDestroying) {
       return;
     }
+
     var store = this;
     this._pendingFetch.forEach(function(type, recordResolverPairs){
       var adapter = store.adapterFor(type);
@@ -697,6 +698,7 @@ Store = Ember.Object.extend({
     type = this.modelFor(type);
 
     records = Ember.A(records);
+
 
     var unloadedRecords = records.filterProperty('isEmpty', true),
         manyArray = this.recordArrayManager.createManyArray(type, records);
