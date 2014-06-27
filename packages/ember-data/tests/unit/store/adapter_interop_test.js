@@ -562,8 +562,8 @@ test("the store calls adapter.findMany according to groupings returned by adapte
   }));
 });
 
-test("the promise returned by `scheduleFetch` does not depend on the promises returned to other calls to `scheduleFetch` that are in the same run loop, but different groups", function() {
-  var callCount = 0;
+test("the promise returned by `scheduleFetch`, when it resolves, does not depend on the promises returned to other calls to `scheduleFetch` that are in the same run loop, but different groups", function() {
+  expect(2);
   var Person = DS.Model.extend();
   var davidResolved = false;
 
@@ -602,6 +602,55 @@ test("the promise returned by `scheduleFetch` does not depend on the promises re
     var igorPromise = store.find(Person, 'igor');
 
     igorPromise.then(async(function () {
+      equal(davidResolved, false, "Igor did not need to wait for David");
+    }));
+
+    davidPromise.then(async(function () {
+      equal(davidResolved, true, "David resolved");
+    }));
+  });
+});
+
+test("the promise returned by `scheduleFetch`, when it rejects, does not depend on the promises returned to other calls to `scheduleFetch` that are in the same run loop, but different groups", function() {
+  expect(2);
+  var Person = DS.Model.extend();
+  var davidResolved = false;
+
+  var adapter = TestAdapter.extend({
+    groupRecordsForFindMany: function (records) {
+      return [
+        [records[0]],
+        [records[1]]
+      ];
+    },
+
+    findMany: function(store, type, ids) {
+      var records = ids.map(function(id) {
+        return {id: id};
+      });
+
+      return new Ember.RSVP.Promise(function(resolve, reject) {
+        if (ids[0] === 'igor') {
+          reject(records);
+        } else {
+          Ember.run.later(function () {
+            davidResolved = true;
+            resolve(records);
+          }, 5);
+        }
+      });
+    }
+  });
+
+  var store = createStore({
+    adapter: adapter
+  });
+
+  Ember.run(function () {
+    var davidPromise = store.find(Person, 'david');
+    var igorPromise = store.find(Person, 'igor');
+
+    igorPromise.then(null, async(function () {
       equal(davidResolved, false, "Igor did not need to wait for David");
     }));
 

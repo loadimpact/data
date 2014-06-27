@@ -547,6 +547,17 @@ Store = Ember.Object.extend({
       });
     }
 
+    function makeRecordsRejector(records) {
+      return function rejectRecords(error) {
+        forEach(records, function(record){
+          var pair = Ember.A(recordResolverPairs).findBy('record', record);
+          if (pair){
+            var resolver = pair.resolver;
+            resolver.reject(error);
+          }
+        });
+      };
+    }
     function rejectAllRecords(error) {
       forEach(resolvers, function(resolver){
         resolver.reject(error);
@@ -562,8 +573,7 @@ Store = Ember.Object.extend({
 
         _findMany(adapter, store, type, ids, groupOfRecords).
           then(resolveFoundRecords).
-          // TODO: only reject grouped resolvers
-          then(null, rejectAllRecords);
+          then(null, makeRecordsRejector(groupOfRecords));
       });
     } else {
       forEach(recordResolverPairs, _fetchRecord);
