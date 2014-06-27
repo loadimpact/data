@@ -435,9 +435,10 @@ var Adapter = Ember.Object.extend({
     @param {DS.Store} store
     @param {subclass of DS.Model} type   the DS.Model class of the records
     @param {Array}    ids
+    @param {Array} records 
     @return {Promise} promise
   */
-  findMany: function(store, type, ids) {
+  findMany: function(store, type, ids, records) {
     var promises = map.call(ids, function(id) {
       return this.find(store, type, id);
     }, this);

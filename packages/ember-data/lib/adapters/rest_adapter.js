@@ -288,9 +288,10 @@ var RESTAdapter = Adapter.extend({
     @param {DS.Store} store
     @param {subclass of DS.Model} type
     @param {Array} ids
+    @param {Array} records 
     @return {Promise} promise
   */
-  findMany: function(store, type, ids) {
+  findMany: function(store, type, ids, records) {
     return this.ajax(this.buildURL(type.typeKey), 'GET', { data: { ids: ids } });
   },
 

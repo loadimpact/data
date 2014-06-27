@@ -557,7 +557,7 @@ Store = Ember.Object.extend({
     if (recordResolverPairs.length === 1) {
       _fetchRecord(recordResolverPairs[0]);
     } else if (shouldCoalesce) {
-      _findMany(adapter, store, type, ids, null, records).
+      _findMany(adapter, store, type, ids, records).
         then(resolveFoundRecords).
         then(null, rejectAllRecords);
     } else {
@@ -1797,8 +1797,8 @@ function _find(adapter, store, type, id, record) {
   }, "DS: Extract payload of '" + type + "'");
 }
 
-function _findMany(adapter, store, type, ids, owner, records) {
-  var promise = adapter.findMany(store, type, ids, owner, records),
+function _findMany(adapter, store, type, ids, records) {
+  var promise = adapter.findMany(store, type, ids, records),
       serializer = serializerForAdapter(adapter, type),
       label = "DS: Handle Adapter#findMany of " + type;
 

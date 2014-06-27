@@ -580,7 +580,7 @@ test("When finding a hasMany relationship the inverse belongsTo relationship is 
   var env = setupStore({ occupation: Occupation, person: Person }),
       store = env.store;
 
-  env.adapter.findMany = function(store, type, ids, owner, records) {
+  env.adapter.findMany = function(store, type, ids, records) {
     equal(records[0].get('person.id'), '1');
     return Ember.RSVP.resolve([{ id: 5, description: "fifth" }, { id: 2, description: "second" }]);
   };
