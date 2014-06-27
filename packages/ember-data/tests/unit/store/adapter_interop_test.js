@@ -307,7 +307,6 @@ test("initial values of attributes can be passed in as the third argument to fin
     }
   });
 
-  var callCount = 0;
   var store = createStore({
     adapter: adapter
   });
@@ -328,7 +327,6 @@ test("initial values of belongsTo can be passed in as the third argument to find
     }
   });
 
-  var callCount = 0;
   var store = createStore({
     adapter: adapter
   });
@@ -354,7 +352,6 @@ test("initial values of belongsTo can be passed in as the third argument to find
     }
   });
 
-  var callCount = 0;
   var store = createStore({
     adapter: adapter
   });
@@ -378,7 +375,6 @@ test("initial values of hasMany can be passed in as the third argument to find a
     }
   });
 
-  var callCount = 0;
   var store = createStore({
     adapter: adapter
   });
@@ -404,7 +400,6 @@ test("initial values of hasMany can be passed in as the third argument to find a
     }
   });
 
-  var callCount = 0;
   var store = createStore({
     adapter: adapter
   });
