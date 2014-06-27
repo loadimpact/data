@@ -547,20 +547,26 @@ Store = Ember.Object.extend({
       });
     }
 
-    function makeRecordsRejector(records) {
-      return function rejectRecords(error) {
-        forEach(records, function(record){
-          var pair = Ember.A(recordResolverPairs).findBy('record', record);
-          if (pair){
-            var resolver = pair.resolver;
-            resolver.reject(error);
-          }
-        });
+    function makeMissingRecordsRejector(requestedRecords) {
+      return function rejectMissingRecords(resolvedRecords) {
+        var missingRecords = requestedRecords.without(resolvedRecords);
+        rejectRecords(missingRecords);
       };
     }
-    function rejectAllRecords(error) {
-      forEach(resolvers, function(resolver){
-        resolver.reject(error);
+
+    function makeRecordsRejector(records) {
+      return function (error) {
+        rejectRecords(records, error);
+      };
+    }
+
+    function rejectRecords(records, error) {
+      forEach(records, function(record){
+        var pair = Ember.A(recordResolverPairs).findBy('record', record);
+        if (pair){
+          var resolver = pair.resolver;
+          resolver.reject(error);
+        }
       });
     }
 
@@ -569,11 +575,13 @@ Store = Ember.Object.extend({
     } else if (shouldCoalesce) {
       var groups = adapter.groupRecordsForFindMany(records);
       forEach(groups, function (groupOfRecords) {
-        var ids = Ember.A(groupOfRecords).mapBy('id');
+        var requestedRecords = Ember.A(groupOfRecords);
+        var ids = requestedRecords.mapBy('id');
 
-        _findMany(adapter, store, type, ids, groupOfRecords).
+        _findMany(adapter, store, type, ids, requestedRecords).
           then(resolveFoundRecords).
-          then(null, makeRecordsRejector(groupOfRecords));
+          then(makeMissingRecordsRejector(requestedRecords)).
+          then(null, makeRecordsRejector(requestedRecords));
       });
     } else {
       forEach(recordResolverPairs, _fetchRecord);

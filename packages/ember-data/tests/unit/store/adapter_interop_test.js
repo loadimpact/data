@@ -659,3 +659,39 @@ test("the promise returned by `scheduleFetch`, when it rejects, does not depend 
     }));
   });
 });
+
+test("store.fetchRecord reject records that were not found, even when those requests were coalesced with records that were found", function() {
+  expect(2);
+  var Person = DS.Model.extend();
+
+  var adapter = TestAdapter.extend({
+    findMany: function(store, type, ids) {
+      var records = ids.map(function(id) {
+        return {id: id};
+      });
+
+      return new Ember.RSVP.Promise(function(resolve, reject) {
+        resolve([
+          records[0]
+        ]);
+      });
+    }
+  });
+
+  var store = createStore({
+    adapter: adapter
+  });
+
+  Ember.run(function () {
+    var davidPromise = store.find(Person, 'david');
+    var igorPromise = store.find(Person, 'igor');
+
+    davidPromise.then(async(function () {
+      ok(true, "David resolved");
+    }));
+
+    igorPromise.then(null, async(function () {
+      ok(true, "Igor rejected");
+    }));
+  });
+});
