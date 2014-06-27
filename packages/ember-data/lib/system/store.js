@@ -507,50 +507,62 @@ Store = Ember.Object.extend({
     } else {
       this._pendingFetch.get(type).push(recordResolverPair);
     }
-    Ember.run.scheduleOnce('afterRender', this, this.flushPendingFetch);
+    Ember.run.scheduleOnce('afterRender', this, this.flushAllPendingFetches);
 
     return promise;
   },
 
-  flushPendingFetch: function(){
+  flushAllPendingFetches: function(){
     if (this.isDestoyed || this.isDestroying) {
       return;
     }
 
-    var store = this;
-    this._pendingFetch.forEach(function(type, recordResolverPairs){
-      var adapter = store.adapterFor(type);
-      if (adapter.findMany && recordResolverPairs.length > 1) {
-        var records = Ember.A(recordResolverPairs).mapBy('record');
-        var resolvers = Ember.A(recordResolverPairs).mapBy('resolver');
-        var ids = Ember.A(records).mapBy('id');
-        _findMany(adapter, store, type, ids, null, records).then(function(records){
-          forEach(records, function(record){
-            var pair = Ember.A(recordResolverPairs).findBy('record', record);
-            if (pair){
-              var resolver = pair.resolver;
-              resolver.resolve(record);
-            }
-          });
-        }, function(error){
-          forEach(resolvers, function(resolver){
-            resolver.reject(error);
-          });
-        });
-      } else {
-        forEach(recordResolverPairs, function(recordResolverPair){
-          var resolver = recordResolverPair.resolver;
-          store.fetchRecord(recordResolverPair.record).then(function(record){
-            resolver.resolve(record);
-          }, function(error){
-            resolver.reject(error);
-          });
-        });
-      }
-      }, this);
-
-
+    this._pendingFetch.forEach(this._flushPendingFetchForType, this);
     this._pendingFetch = Ember.Map.create();
+  },
+
+  _flushPendingFetchForType: function (type, recordResolverPairs) {
+    var store = this;
+    var adapter = store.adapterFor(type);
+    var shouldCoalesce = !!adapter.findMany;
+    var records = Ember.A(recordResolverPairs).mapBy('record');
+    var resolvers = Ember.A(recordResolverPairs).mapBy('resolver');
+    var ids = Ember.A(records).mapBy('id');
+
+    function _fetchRecord(recordResolverPair) {
+      var resolver = recordResolverPair.resolver;
+      store.fetchRecord(recordResolverPair.record).then(function(record){
+        resolver.resolve(record);
+      }, function(error){
+        resolver.reject(error);
+      });
+    }
+
+    function resolveFoundRecords(records) {
+      forEach(records, function(record){
+        var pair = Ember.A(recordResolverPairs).findBy('record', record);
+        if (pair){
+          var resolver = pair.resolver;
+          resolver.resolve(record);
+        }
+      });
+    }
+
+    function rejectAllRecords(error) {
+      forEach(resolvers, function(resolver){
+        resolver.reject(error);
+      });
+    }
+
+    if (recordResolverPairs.length === 1) {
+      _fetchRecord(recordResolverPairs[0]);
+    } else if (shouldCoalesce) {
+      _findMany(adapter, store, type, ids, null, records).
+        then(resolveFoundRecords).
+        then(null, rejectAllRecords);
+    } else {
+      forEach(recordResolverPairs, _fetchRecord);
+    }
   },
 
   /**
@@ -1888,6 +1900,8 @@ function _commit(adapter, store, operation, record) {
     throw reason;
   }, label);
 }
+
+
 
 export {Store, PromiseArray, PromiseObject};
 export default Store;
