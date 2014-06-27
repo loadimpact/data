@@ -159,7 +159,8 @@
       didUpdateAttributes: syncForTest(),
       didUpdateRelationship: syncForTest(),
       didUpdateRelationships: syncForTest(),
-      scheduleFetch: syncForTest()
+      scheduleFetch: syncForTest(),
+      scheduleFetchMany: syncForTest()
     });
 
     DS.Model.reopen({

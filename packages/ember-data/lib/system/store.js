@@ -527,7 +527,6 @@ Store = Ember.Object.extend({
     var shouldCoalesce = !!adapter.findMany;
     var records = Ember.A(recordResolverPairs).mapBy('record');
     var resolvers = Ember.A(recordResolverPairs).mapBy('resolver');
-    var ids = Ember.A(records).mapBy('id');
 
     function _fetchRecord(recordResolverPair) {
       var resolver = recordResolverPair.resolver;
@@ -557,9 +556,15 @@ Store = Ember.Object.extend({
     if (recordResolverPairs.length === 1) {
       _fetchRecord(recordResolverPairs[0]);
     } else if (shouldCoalesce) {
-      _findMany(adapter, store, type, ids, records).
-        then(resolveFoundRecords).
-        then(null, rejectAllRecords);
+      var groups = adapter.groupRecordsForFindMany(records);
+      forEach(groups, function (groupOfRecords) {
+        var ids = Ember.A(groupOfRecords).mapBy('id');
+
+        _findMany(adapter, store, type, ids, groupOfRecords).
+          then(resolveFoundRecords).
+          // TODO: only reject grouped resolvers
+          then(null, rejectAllRecords);
+      });
     } else {
       forEach(recordResolverPairs, _fetchRecord);
     }

@@ -514,3 +514,99 @@ test("store.scheduleFetchMany should not resolve until all the records are resol
     equal(get(unloadedRecords, 'length'), 0, 'All unloaded records should be loaded');
   }));
 });
+
+test("the store calls adapter.findMany according to groupings returned by adapter.groupRecordsForFindMany", function() {
+  expect(3);
+
+  var callCount = 0;
+  var Person = DS.Model.extend();
+
+  var adapter = TestAdapter.extend({
+    groupRecordsForFindMany: function (records) {
+      return [
+        [records[0]],
+        [records[1], records[2]]
+      ];
+    },
+
+    findMany: function(store, type, ids) {
+      var records = ids.map(function(id) {
+        return {id: id};
+      });
+
+      if (++callCount === 1) {
+        deepEqual(ids, ["10"], "The first group is passed to findMany");
+      } else {
+        deepEqual(ids, ["20", "21"], "The second group is passed to findMany");
+      }
+
+      return new Ember.RSVP.Promise(function(resolve, reject) {
+        resolve(records);
+      });
+    }
+  });
+
+  var store = createStore({
+    adapter: adapter
+  });
+
+  var records = Ember.A([
+    store.recordForId(Person, 10),
+    store.recordForId(Person, 20),
+    store.recordForId(Person, 21)
+  ]);
+
+  store.scheduleFetchMany(records).then(async(function() {
+    var ids = records.mapBy('id');
+    deepEqual(ids, ["10", "20", "21"], "The promise fulfills with the records");
+  }));
+});
+
+test("the promise returned by `scheduleFetch` does not depend on the promises returned to other calls to `scheduleFetch` that are in the same run loop, but different groups", function() {
+  var callCount = 0;
+  var Person = DS.Model.extend();
+  var davidResolved = false;
+
+  var adapter = TestAdapter.extend({
+    groupRecordsForFindMany: function (records) {
+      return [
+        [records[0]],
+        [records[1]]
+      ];
+    },
+
+    findMany: function(store, type, ids) {
+      var records = ids.map(function(id) {
+        return {id: id};
+      });
+
+      return new Ember.RSVP.Promise(function(resolve, reject) {
+        if (ids[0] === 'igor') {
+          resolve(records);
+        } else {
+          Ember.run.later(function () {
+            davidResolved = true;
+            resolve(records);
+          }, 5);
+        }
+      });
+    }
+  });
+
+  var store = createStore({
+    adapter: adapter
+  });
+
+  Ember.run(function () {
+    var davidPromise = store.find(Person, 'david');
+    var igorPromise = store.find(Person, 'igor');
+
+    igorPromise.then(async(function () {
+      equal(davidResolved, false, "Igor did not need to wait for David");
+    }));
+
+    davidPromise.then(async(function () {
+      equal(davidResolved, true, "David resolved");
+    }));
+  });
+});
