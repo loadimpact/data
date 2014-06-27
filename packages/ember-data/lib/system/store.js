@@ -601,53 +601,6 @@ Store = Ember.Object.extend({
   },
 
   /**
-    This method takes a list of records, groups the records by type,
-    converts the records into IDs, and then invokes the adapter's `findMany`
-    method.
-
-    The records are grouped by type to invoke `findMany` on adapters
-    for each unique type in records.
-
-    It is used both by a brand new relationship (via the `findMany`
-    method) or when the data underlying an existing relationship
-    changes.
-
-    @method fetchMany
-    @private
-    @param {Array} records
-    @param {DS.Model} owner
-    @return {Promise} promise
-  */
-  fetchMany: function(records, owner) {
-    if (!records.length) {
-      return Ember.RSVP.resolve(records);
-    }
-
-    // Group By Type
-    var recordsByTypeMap = Ember.MapWithDefault.create({
-      defaultValue: function() { return Ember.A(); }
-    });
-
-    forEach(records, function(record) {
-      recordsByTypeMap.get(record.constructor).push(record);
-    });
-
-    var promises = [];
-
-    forEach(recordsByTypeMap, function(type, records) {
-      var ids = records.mapProperty('id'),
-          adapter = this.adapterFor(type);
-
-      Ember.assert("You tried to load many records but you have no adapter (for " + type + ")", adapter);
-      Ember.assert("You tried to load many records but your adapter does not implement `findMany`", adapter.findMany);
-
-      promises.push(_findMany(adapter, this, type, ids, owner), records);
-    }, this);
-
-    return Ember.RSVP.all(promises);
-  },
-
-  /**
     Returns true if a record for a given type and ID is already loaded.
 
     @method hasRecordForId

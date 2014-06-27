@@ -461,22 +461,34 @@ test("store.fetchMany should always return a promise", function() {
   var owner = store.createRecord(Person);
   var records = Ember.A([]);
 
-  var results = store.fetchMany(records, owner);
-  ok(results, "A call to store.fetchMany() should return a result");
-  ok(results.then, "A call to store.fetchMany() should return a promise");
+  var results = store.scheduleFetchMany(records);
+  ok(results, "A call to store.scheduleFetchMany() should return a result");
+  ok(results.then, "A call to store.scheduleFetchMany() should return a promise");
 
   results.then(async(function(returnedRecords) {
-    equal(returnedRecords, records, "The empty record sets should match");
+    deepEqual(returnedRecords, [], "The correct records are returned");
   }));
 });
 
-test("store.fetchMany should not resolve until all the records are resolve", function() {
+test("store.scheduleFetchMany should not resolve until all the records are resolve", function() {
   var Person = DS.Model.extend();
   var Phone = DS.Model.extend();
 
   var adapter = TestAdapter.extend({
+    find: function (store, type, id) {
+      var wait = 5;
+
+      var record = { id: id };
+
+      return new Ember.RSVP.Promise(function(resolve, reject) {
+        Ember.run.later(function() {
+          resolve(record);
+        }, wait);
+      });
+    },
+
     findMany: function(store, type, ids) {
-      var wait = (type === Person)? 5 : 15;
+      var wait = 15;
 
       var records = ids.map(function(id) {
         return {id: id};
@@ -502,7 +514,7 @@ test("store.fetchMany should not resolve until all the records are resolve", fun
     store.recordForId(Phone, 21)
   ]);
 
-  store.fetchMany(records, owner).then(async(function() {
+  store.scheduleFetchMany(records).then(async(function() {
     var unloadedRecords = records.filterBy('isEmpty');
     equal(get(unloadedRecords, 'length'), 0, 'All unloaded records should be loaded');
   }));
